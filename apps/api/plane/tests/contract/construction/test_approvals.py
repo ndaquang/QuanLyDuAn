@@ -77,7 +77,19 @@ class TestApprovalWorkflow:
         p = company.create_project()["id"]
         res = _create(company, project=p)
         assert res.status_code == 400
+        # create + submit is atomic: nothing half-done is left behind
+        assert not ApprovalRequest.objects.exists()
+        draft = _create(company, project=p, submit=False)
+        assert draft.status_code == 201
+        assert _act(company, "procurement", draft.data["id"], "submit").status_code == 400
         assert ApprovalRequest.objects.get().status == "draft"
+
+    def test_company_level_request_skips_project_manager_step(self, company):
+        res = _create(company)  # no project
+        assert res.status_code == 201, res.data
+        req = ApprovalRequest.objects.get(pk=res.data["id"])
+        names = list(req.workflow.steps.filter(id__in=req.step_plan).order_by("order").values_list("name", flat=True))
+        assert names == ["Trưởng bộ phận kiểm tra", "Kế toán kiểm tra ngân sách", "Giám đốc phê duyệt"]
 
     def test_financial_request_needs_amount(self, company):
         assert _create(company, amount=0).status_code == 400

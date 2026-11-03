@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # See the LICENSE file for details.
 
+from django.db import transaction
 from django.db.models import Q
 from rest_framework import status
 from rest_framework.decorators import action
@@ -95,16 +96,18 @@ class ApprovalRequestViewSet(CxViewSet):
         ).first()
         if workflow is None:
             raise ValidationError({"request_type": "Chưa cấu hình luồng phê duyệt cho loại yêu cầu này."})
-        instance = serializer.save(
-            workspace=self.cx.workspace,
-            workflow=workflow,
-            requester=request.user,
-            code=next_code(self.cx.workspace, "PD"),
-        )
-        audit.record(request, "create", instance, changes=audit.diff({}, audit.snapshot(instance)))
-        if request.data.get("submit") in (True, "true", "1"):
-            instance = approvals.submit(instance, request.user)
-            audit.record(request, "submit", instance)
+        # Create (and optionally submit) atomically: a refused submission leaves no orphan draft.
+        with transaction.atomic():
+            instance = serializer.save(
+                workspace=self.cx.workspace,
+                workflow=workflow,
+                requester=request.user,
+                code=next_code(self.cx.workspace, "PD"),
+            )
+            audit.record(request, "create", instance, changes=audit.diff({}, audit.snapshot(instance)))
+            if request.data.get("submit") in (True, "true", "1"):
+                instance = approvals.submit(instance, request.user)
+                audit.record(request, "submit", instance)
         return Response(
             self.get_serializer(ApprovalRequest.objects.get(pk=instance.pk)).data, status=status.HTTP_201_CREATED
         )

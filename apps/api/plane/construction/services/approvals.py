@@ -8,7 +8,8 @@ Rules enforced here (not in the UI):
 
 * a request is approved only when a human approves the last applicable step -
   nothing is ever auto-approved;
-* steps apply by amount threshold (``min_amount``, "phê duyệt theo hạn mức");
+* steps apply by amount threshold (``min_amount``, "phê duyệt theo hạn mức"); the
+  project-manager step applies only to requests attached to a project;
 * the requester can never approve their own request (separation of duties); a
   step whose only possible approver is the requester is recorded as skipped;
 * for financial workflows a step with no approver at all blocks submission
@@ -28,8 +29,14 @@ from . import notifications
 
 
 def applicable_steps(request_obj):
+    """Steps that apply to this request: amount threshold met, and project steps only for project requests."""
     steps = ApprovalStep.objects.filter(workflow=request_obj.workflow).select_related("approver_role")
-    return [s for s in steps.order_by("order") if s.min_amount is None or request_obj.amount >= s.min_amount]
+    return [
+        s
+        for s in steps.order_by("order")
+        if (s.min_amount is None or request_obj.amount >= s.min_amount)
+        and (s.approver_kind != ApprovalStep.ApproverKind.PROJECT_MANAGER or request_obj.project_id)
+    ]
 
 
 def _active_member_ids(workspace_id):

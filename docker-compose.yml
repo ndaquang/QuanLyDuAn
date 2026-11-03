@@ -34,6 +34,18 @@ services:
       - api
       - web
 
+  # Construction ERP front-end (Vietnamese), served at /erp/ behind the proxy
+  erp:
+    container_name: erp
+    build:
+      context: .
+      dockerfile: ./apps/erp/Dockerfile.erp
+      args:
+        DOCKER_BUILDKIT: 1
+    restart: always
+    depends_on:
+      - api
+
   api:
     container_name: api
     build:
@@ -169,6 +181,7 @@ services:
       - api
       - space
       - admin
+      - erp
 
 volumes:
   pgdata:

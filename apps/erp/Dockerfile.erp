@@ -1,0 +1,55 @@
+# Construction ERP front-end (static SPA served under /erp/ by Caddy).
+FROM node:22-alpine AS base
+
+WORKDIR /app
+
+ENV TURBO_TELEMETRY_DISABLED=1
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PNPM_HOME/bin:$PATH"
+ENV CI=1
+
+RUN corepack enable pnpm
+
+# =========================================================================== #
+
+FROM base AS builder
+
+RUN pnpm add -g turbo@2.10.11
+
+COPY . .
+
+RUN turbo prune --scope=erp --docker
+
+# =========================================================================== #
+
+FROM base AS installer
+
+ENV NODE_ENV=production
+
+COPY .gitignore .gitignore
+COPY --from=builder /app/out/json/ .
+COPY --from=builder /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
+COPY --from=builder /app/out/full/ .
+COPY turbo.json turbo.json
+
+RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store pnpm fetch --store-dir=/pnpm/store
+RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store CI=true pnpm install --offline --frozen-lockfile --store-dir=/pnpm/store --prod=false
+
+RUN pnpm turbo run build --filter=erp
+
+# =========================================================================== #
+
+FROM caddy:2.11.4-alpine AS production
+
+ARG APK_SECURITY_PATCH=2026-10-26
+RUN echo "apk-security-patch ${APK_SECURITY_PATCH}" && apk update && apk upgrade --no-cache --available && apk add --no-cache curl && rm -rf /var/cache/apk/*
+
+COPY apps/erp/caddy/Caddyfile /etc/caddy/Caddyfile
+COPY --from=installer /app/apps/erp/dist /usr/share/caddy/html/erp
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD curl -fsS http://127.0.0.1:3000/erp/ >/dev/null || exit 1
+
+EXPOSE 3000
+
+CMD ["caddy", "run", "--config", "/etc/caddy/Caddyfile"]

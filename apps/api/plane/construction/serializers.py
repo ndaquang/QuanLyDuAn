@@ -277,6 +277,19 @@ class ProjectSerializer(WorkspaceSerializer):
         self._check_workspace_user(attrs.get("manager"), "manager")
         if not self.instance and not attrs.get("manager"):
             raise serializers.ValidationError({"manager": "Vui lòng chọn người phụ trách dự án."})
+        name = (attrs.get("project") or {}).get("name")
+        if name is not None:
+            name = name.strip()
+            if not name:
+                raise serializers.ValidationError({"name": "Vui lòng nhập tên công trình."})
+            attrs["project"]["name"] = name
+            from plane.db.models import Project
+
+            qs = Project.objects.filter(workspace=self._ctx().workspace, name=name)
+            if self.instance:
+                qs = qs.exclude(pk=self.instance.project_id)
+            if qs.exists():
+                raise serializers.ValidationError({"name": "Tên công trình đã tồn tại (kể cả dự án đã lưu trữ)."})
         code = attrs.get("code")
         if code:
             qs = ProjectProfile.objects.filter(workspace=self._ctx().workspace, code__iexact=code)

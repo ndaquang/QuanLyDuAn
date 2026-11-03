@@ -59,6 +59,19 @@ class TestAccessControl:
             format="json",
         )
         assert res.status_code == 400 and "code" in res.data
+        res = company.client("project_manager").post(
+            company.url("projects/"),
+            {
+                "code": "DA-201",
+                "name": "Công trình DA-200",
+                "investor": "y",
+                "start_date": "2026-01-01",
+                "planned_end_date": "2026-02-01",
+                "manager": str(company.users["project_manager"].id),
+            },
+            format="json",
+        )
+        assert res.status_code == 400 and "name" in res.data
 
     def test_end_date_must_follow_start(self, company):
         res = company.client("project_manager").post(

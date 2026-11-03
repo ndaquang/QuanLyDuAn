@@ -234,7 +234,9 @@ class ReportView(CxAPIView):
         if request.query_params.get("export") == "xlsx":
             subtitle = " | ".join(f"{k}: {v}" for k, v in meta.items() if v) or ""
             return xlsx_response(report, title, columns, rows, subtitle=subtitle)
-        return Response({"title": title, "columns": [c[0] for c in columns], "rows": rows, "meta": meta})
+        return Response(
+            {"title": title, "columns": [{"label": c[0], "key": c[1]} for c in columns], "rows": rows, "meta": meta}
+        )
 
     # 1. Báo cáo tổng hợp dự án
     def project_summary(self, request):

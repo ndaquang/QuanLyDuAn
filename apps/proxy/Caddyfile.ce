@@ -6,6 +6,9 @@
   redir /spaces /spaces/ permanent
 	reverse_proxy /spaces/* space:3000
 
+  redir /erp /erp/ permanent
+	reverse_proxy /erp/* erp:3000
+
   redir /god-mode /god-mode/ permanent
 	reverse_proxy /god-mode/* admin:3000
 	

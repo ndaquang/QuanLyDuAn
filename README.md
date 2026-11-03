@@ -1,3 +1,6 @@
+> **Bản riêng: Quản lý Công ty Xây dựng.** Repo này bổ sung phân hệ ERP xây dựng (tiếng Việt) chạy độc lập trên nền Plane:
+> backend `apps/api/plane/construction/`, giao diện `apps/erp/` (đường dẫn `/erp/`). Tài liệu: [docs/construction](docs/construction/README.md).
+
 <br /><br />
 
 <p align="center">
