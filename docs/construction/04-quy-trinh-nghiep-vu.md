@@ -76,6 +76,28 @@ sequenceDiagram
   Note over API: 07:15 hằng ngày: nhắc sắp đến hạn / quá hạn
 ```
 
-## 4.5 Đấu thầu
+## 4.5 Đấu thầu (giao việc chuẩn bị hồ sơ dự thầu)
 
-Tạo gói thầu (hạn nộp, bên mời thầu, người phụ trách) → lập danh sách đầu mục hồ sơ (pháp lý, kỹ thuật, tài chính) giao cho từng người, có hạn → cập nhật trạng thái từng đầu mục → tải tệp hồ sơ → cập nhật kết quả (trúng / trượt) → khi trúng thầu: gắn với dự án mới tạo. Dashboard hiển thị các gói sắp đến hạn nộp trong 14 ngày.
+Phân hệ đấu thầu **không lưu bất kỳ số liệu giá nào** (giá dự thầu, báo giá, bảo lãnh...); trọng tâm là giao việc, theo dõi hạn và kết quả.
+
+```mermaid
+flowchart TD
+  A[Tạo gói thầu<br/>hạn nộp, bên mời thầu, người phụ trách] --> S[Đánh giá sơ bộ]
+  S -->|Người có quyền Duyệt: Tham dự| P[Đang lập HSDT]
+  S -->|Không tham dự + lý do| D[Đã đóng - Không tham dự]
+  P --> T[Tạo danh sách việc mẫu<br/>hoặc giao việc từng đầu mục]
+  T --> W[Người được giao: cập nhật trạng thái,<br/>bình luận, đính kèm tệp]
+  W -->|mọi việc xong| N[Đã nộp HSDT]
+  W -->|còn việc chưa xong| X[Chặn nộp, trừ khi người có quyền Duyệt xác nhận]
+  N --> E[Đang chấm thầu] --> R{Kết quả}
+  N --> R
+  R -->|Trúng| WON[Trúng thầu → tạo dự án]
+  R -->|Trượt + lý do| LOST[Không trúng thầu]
+  P -->|Bên mời thầu hủy| C[Đã hủy]
+```
+
+**Giao việc (công việc gói thầu):** mỗi việc có tên, mô tả, nhóm hồ sơ (pháp lý / kỹ thuật / khối lượng BOQ / khác), **người thực hiện**, **hạn** (không được sau hạn nộp thầu), **mức ưu tiên**, trạng thái, bình luận và tệp đính kèm. Giao việc hoặc đổi người thực hiện → người đó nhận thông báo; việc hoàn thành → người phụ trách gói thầu nhận thông báo.
+
+**Nhắc việc tự động (07:15 hằng ngày):** hạn nộp thầu còn 7 / 3 / 1 ngày và hôm nay (gửi người phụ trách và mọi người còn việc dở); hạn hỏi đáp, khảo sát hiện trường, tiền đấu thầu (trước 1 ngày); việc sắp đến hạn hoặc quá hạn (người thực hiện, quá hạn thì báo cả người phụ trách); hồ sơ năng lực sắp hết hạn (30 ngày).
+
+**Khác:** hỏi đáp / văn bản làm rõ HSMT; thư viện hồ sơ năng lực dùng chung (chọn hồ sơ dùng cho từng gói thầu); tài liệu nộp thầu có duyệt và khóa; lịch đấu thầu (mốc + hạn việc, lọc "của tôi"); thống kê số gói đang mở, việc quá hạn, tỷ lệ trúng thầu và lý do không trúng. Gói thầu đã đóng (trúng, trượt, không tham dự, hủy) bị khóa.

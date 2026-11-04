@@ -7,6 +7,9 @@ from rest_framework import serializers
 from plane.db.models import ProjectMember, User, WorkspaceMember
 
 from .models import (
+    CapabilityDocument,
+    TenderClarification,
+    TenderItemComment,
     ApprovalHistory,
     ApprovalRequest,
     ApprovalStep,
@@ -540,41 +543,190 @@ class MaterialSerializer(_UniqueCodeMixin, WorkspaceSerializer):
         return attrs
 
 
-class TenderItemSerializer(WorkspaceSerializer):
+class _TenderChildMixin:
+    """Children of a tender: same company, and frozen once the tender is closed."""
+
+    lock_with_tender = True
+
+    def _check_tender(self, attrs):
+        tender = attrs.get("tender", getattr(self.instance, "tender", None))
+        self._check_workspace(tender, "tender")
+        if self.instance and "tender" in attrs and attrs["tender"] != self.instance.tender:
+            raise serializers.ValidationError({"tender": "Không thể chuyển sang gói thầu khác."})
+        if self.lock_with_tender and tender is not None and tender.is_locked:
+            raise serializers.ValidationError({"tender": "Gói thầu đã đóng, không thể thay đổi."})
+        return tender
+
+
+class TenderItemSerializer(_TenderChildMixin, WorkspaceSerializer):
     assignee_detail = UserBriefField(source="assignee")
+    created_by_detail = UserBriefField(source="created_by")
+    tender_code = serializers.CharField(source="tender.code", read_only=True)
+    tender_name = serializers.CharField(source="tender.name", read_only=True)
+    is_overdue = serializers.SerializerMethodField()
+    comment_count = serializers.SerializerMethodField()
+    attachment_count = serializers.SerializerMethodField()
 
     class Meta:
         model = TenderItem
-        fields = ["id", "tender", "name", "category", "assignee", "assignee_detail", "due_date", "status", "note"]
+        fields = [
+            "id", "tender", "tender_code", "tender_name", "name", "description", "category", "priority",
+            "assignee", "assignee_detail", "created_by_detail", "due_date", "status", "completed_at", "note",
+            "is_overdue", "comment_count", "attachment_count", "created_at",
+        ]  # fmt: skip
+        read_only_fields = ["completed_at"]
+
+    def get_is_overdue(self, obj):
+        from django.utils import timezone
+
+        return bool(obj.due_date and obj.status != TenderItem.Status.DONE and obj.due_date < timezone.localdate())
+
+    def get_comment_count(self, obj):
+        return obj.comments.filter(deleted_at__isnull=True).count()
+
+    def get_attachment_count(self, obj):
+        return Attachment.objects.filter(entity_type="tender_item", entity_id=obj.id).count()
 
     def validate(self, attrs):
-        self._check_workspace(attrs.get("tender"), "tender")
+        tender = self._check_tender(attrs)
         self._check_workspace_user(attrs.get("assignee"), "assignee")
+        due = attrs.get("due_date")
+        deadline_day = None
+        if tender is not None:
+            from django.utils import timezone
+
+            deadline_day = timezone.localtime(tender.submission_deadline).date()
+        if due and deadline_day and due > deadline_day:
+            raise serializers.ValidationError({"due_date": "Hạn công việc không được sau hạn nộp thầu."})
+        return attrs
+
+
+class TenderItemCommentSerializer(WorkspaceSerializer):
+    author = UserBriefField(source="created_by")
+
+    class Meta:
+        model = TenderItemComment
+        fields = ["id", "item", "text", "author", "created_at"]
+
+    def validate_text(self, value):
+        if not value.strip():
+            raise serializers.ValidationError("Nội dung bình luận trống.")
+        return value.strip()
+
+
+class TenderClarificationSerializer(_TenderChildMixin, WorkspaceSerializer):
+    created_by_detail = UserBriefField(source="created_by")
+    is_answered = serializers.BooleanField(read_only=True)
+
+    class Meta:
+        model = TenderClarification
+        fields = [
+            "id", "tender", "kind", "reference", "question", "asked_date", "answer", "answered_date",
+            "is_answered", "created_by_detail", "created_at",
+        ]  # fmt: skip
+
+    def validate(self, attrs):
+        self._check_tender(attrs)
+        if attrs.get("answer") and not attrs.get("answered_date") and not getattr(self.instance, "answered_date", None):
+            from django.utils import timezone
+
+            attrs["answered_date"] = timezone.localdate()
+        return attrs
+
+
+class CapabilityDocumentSerializer(WorkspaceSerializer):
+    is_expired = serializers.BooleanField(read_only=True)
+    days_to_expiry = serializers.SerializerMethodField()
+    attachment_count = serializers.SerializerMethodField()
+    tender_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = CapabilityDocument
+        fields = [
+            "id", "category", "title", "number", "issuer", "issue_date", "expiry_date", "notes",
+            "is_active", "is_expired", "days_to_expiry", "attachment_count", "tender_count", "updated_at",
+        ]  # fmt: skip
+
+    def get_days_to_expiry(self, obj):
+        from django.utils import timezone
+
+        return (obj.expiry_date - timezone.localdate()).days if obj.expiry_date else None
+
+    def get_attachment_count(self, obj):
+        return Attachment.objects.filter(entity_type="capability", entity_id=obj.id).count()
+
+    def get_tender_count(self, obj):
+        return obj.tenders.filter(deleted_at__isnull=True).count()
+
+    def validate(self, attrs):
+        issue = attrs.get("issue_date", getattr(self.instance, "issue_date", None))
+        expiry = attrs.get("expiry_date", getattr(self.instance, "expiry_date", None))
+        if issue and expiry and expiry < issue:
+            raise serializers.ValidationError({"expiry_date": "Ngày hết hạn phải sau ngày cấp."})
         return attrs
 
 
 class TenderSerializer(_UniqueCodeMixin, WorkspaceSerializer):
     unique_code_message = "Mã gói thầu đã tồn tại."
     owner_detail = UserBriefField(source="owner")
+    decision_by_detail = UserBriefField(source="decision_by")
     project_name = serializers.CharField(source="project.name", read_only=True, default=None)
+    status_label = serializers.CharField(source="get_status_display", read_only=True)
     checklist = serializers.SerializerMethodField()
+    counts = serializers.SerializerMethodField()
+    capability_document_ids = serializers.PrimaryKeyRelatedField(
+        source="capability_documents", many=True, required=False, queryset=CapabilityDocument.objects.all()
+    )
+    is_locked = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = Tender
         fields = [
-            "id", "code", "name", "investor", "location", "owner", "owner_detail", "project",
-            "project_name", "release_date", "clarification_deadline", "submission_deadline",
-            "bid_value", "status", "result_note", "checklist", "created_at",
+            "id", "code", "name", "investor", "location", "source", "selection_method", "package_type",
+            "owner", "owner_detail", "project", "project_name",
+            "release_date", "site_visit_date", "pre_bid_meeting_date", "clarification_deadline",
+            "submission_deadline", "opening_date", "submission_method", "bid_validity_days", "submitted_at",
+            "decision", "decision_by_detail", "decision_at", "decision_note",
+            "status", "status_label", "result_date", "winner_name", "lost_reason", "result_note",
+            "capability_document_ids", "checklist", "counts", "is_locked", "created_at", "updated_at",
+        ]  # fmt: skip
+        read_only_fields = [
+            "status", "submitted_at", "decision", "decision_at", "decision_note", "result_date", "winner_name",
+            "lost_reason",
         ]  # fmt: skip
 
     def get_checklist(self, obj):
-        items = list(obj.items.filter(deleted_at__isnull=True).values_list("status", flat=True))
-        done = sum(1 for s in items if s == TenderItem.Status.DONE)
-        return {"total": len(items), "done": done, "percent": round(done * 100 / len(items)) if items else 0}
+        from .services.tenders import checklist_summary
+
+        summary = checklist_summary(obj)
+        summary.pop("missing")
+        return summary
+
+    def get_counts(self, obj):
+        if not self.context.get("with_counts"):
+            return None
+        return {
+            "clarifications_open": sum(
+                1 for c in obj.clarifications.filter(deleted_at__isnull=True) if not c.is_answered
+            ),
+            "documents": obj.documents.filter(deleted_at__isnull=True).count(),
+        }
+
+    def validate_capability_document_ids(self, docs):
+        for d in docs:
+            self._check_workspace(d, "capability_document_ids")
+        return docs
 
     def validate(self, attrs):
         self._check_project(attrs.get("project"))
         self._check_workspace_user(attrs.get("owner"), "owner")
+        release = attrs.get("release_date", getattr(self.instance, "release_date", None))
+        deadline = attrs.get("submission_deadline", getattr(self.instance, "submission_deadline", None))
+        if release and deadline and deadline.date() < release:
+            raise serializers.ValidationError({"submission_deadline": "Hạn nộp thầu phải sau ngày phát hành HSMT."})
+        opening = attrs.get("opening_date", getattr(self.instance, "opening_date", None))
+        if opening and deadline and opening < deadline:
+            raise serializers.ValidationError({"opening_date": "Thời điểm mở thầu phải sau hạn nộp thầu."})
         return attrs
 
 

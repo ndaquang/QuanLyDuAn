@@ -43,15 +43,15 @@ Trạng thái: ✅ đã làm trong bản này · 🟡 làm một phần · ⏳ g
 
 ### Giai đoạn 2 - Điều hành
 
-| Hạng mục                                                    | Trạng thái | Ghi chú                                                                                 |
-| ----------------------------------------------------------- | ---------- | --------------------------------------------------------------------------------------- |
-| Tiến độ thi công (Hạng mục → Công việc → Công tác chi tiết) | ✅         | Gantt, lịch tháng, liên kết phụ thuộc, % cộng dồn theo trọng số, mốc                    |
-| Cảnh báo quá hạn / chậm tiến độ, thông báo người phụ trách  | ✅         | Tác vụ Celery hằng ngày 07:15 (giờ VN) + thông báo tức thời khi giao việc               |
-| Công việc & giao việc                                       | ✅         | Dựa trên work item của Plane: người giao, người thực hiện, hạn, ưu tiên, bình luận, tệp |
-| Nhật ký công trường                                         | ✅         | Ảnh hiện trường chụp từ điện thoại, gửi duyệt, khóa sau duyệt                           |
-| Nhân sự, phòng ban, ảnh nhân sự                             | ✅         | Tạo tài khoản đăng nhập không cần máy chủ email                                         |
-| Quản lý tiến độ đấu thầu, hồ sơ nộp thầu                    | ✅         | Gói thầu, đầu mục hồ sơ, tệp hồ sơ                                                      |
-| Phê duyệt cấu hình được (7 loại yêu cầu)                    | ✅         | Hạn mức, kiểm tra ngân sách, không tự duyệt                                             |
+| Hạng mục                                                    | Trạng thái | Ghi chú                                                                                                                                                                                                                                |
+| ----------------------------------------------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Tiến độ thi công (Hạng mục → Công việc → Công tác chi tiết) | ✅         | Gantt, lịch tháng, liên kết phụ thuộc, % cộng dồn theo trọng số, mốc                                                                                                                                                                   |
+| Cảnh báo quá hạn / chậm tiến độ, thông báo người phụ trách  | ✅         | Tác vụ Celery hằng ngày 07:15 (giờ VN) + thông báo tức thời khi giao việc                                                                                                                                                              |
+| Công việc & giao việc                                       | ✅         | Dựa trên work item của Plane: người giao, người thực hiện, hạn, ưu tiên, bình luận, tệp                                                                                                                                                |
+| Nhật ký công trường                                         | ✅         | Ảnh hiện trường chụp từ điện thoại, gửi duyệt, khóa sau duyệt                                                                                                                                                                          |
+| Nhân sự, phòng ban, ảnh nhân sự                             | ✅         | Tạo tài khoản đăng nhập không cần máy chủ email                                                                                                                                                                                        |
+| Quản lý đấu thầu: giao việc chuẩn bị HSDT                   | ✅         | Quyết định tham dự, công việc giao cho từng người (hạn, ưu tiên, bình luận, tệp), hỏi đáp HSMT, thư viện hồ sơ năng lực, lịch, nhắc hạn, kết quả, tạo dự án khi trúng. **Không lưu giá** (giá dự thầu, báo giá, bảo lãnh) theo yêu cầu |
+| Phê duyệt cấu hình được (7 loại yêu cầu)                    | ✅         | Hạn mức, kiểm tra ngân sách, không tự duyệt                                                                                                                                                                                            |
 
 ### Giai đoạn 3 - Vật tư, kho, mua hàng
 

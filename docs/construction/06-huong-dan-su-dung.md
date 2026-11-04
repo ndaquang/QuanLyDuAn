@@ -53,9 +53,21 @@ Dự án → **Báo cáo / Nhật ký** → **Lập nhật ký**: ngày, thời 
 
 ## 6.9 Đấu thầu, hồ sơ, vật tư
 
-- **Đấu thầu**: thêm gói thầu, lập danh sách đầu mục hồ sơ cần chuẩn bị, giao người và hạn, cập nhật trạng thái; % hồ sơ hoàn thành tự tính; tải tệp hồ sơ nộp thầu.
-- **Hồ sơ tài liệu**: mọi hồ sơ kỹ thuật, nghiệm thu, QA/QC, HSE, hợp đồng, pháp lý; có phiên bản, gửi duyệt / nghiệm thu, khóa sau duyệt.
-- **Vật tư & NCC**: danh mục vật tư (đơn vị, quy cách, đơn giá tham khảo, nhà cung cấp) và nhà cung cấp (MST không trùng).
+**Đấu thầu** (menu _Đấu thầu_, 3 tab: _Gói thầu_, _Công việc đấu thầu_, _Lịch_):
+
+1. **Thêm gói thầu**: mã, tên, bên mời thầu, hình thức, người phụ trách, các mốc (phát hành HSMT, khảo sát hiện trường, hỏi đáp, **hạn nộp**, mở thầu). Gói mới ở trạng thái _Đánh giá sơ bộ_.
+2. Người có quyền Duyệt (mặc định Giám đốc) bấm **Tham dự** hoặc **Không tham dự** (ghi lý do) → gói chuyển sang _Đang lập HSDT_.
+3. Tab **Công việc** của gói thầu: **Tạo danh sách việc mẫu** (các đầu việc chuẩn của một HSDT, giao sẵn cho người phụ trách, hạn tính lùi từ hạn nộp) rồi mở từng việc để **đổi người thực hiện**, hạn, mức ưu tiên; hoặc **Giao việc** mới. Người thực hiện nhận thông báo.
+4. Người được giao vào _Đấu thầu → Công việc đấu thầu → Việc của tôi_, mở việc, cập nhật **trạng thái**, **bình luận**, **đính kèm tệp**. Có tab _Tôi đã giao_, _Tất cả_, lọc gói thầu / trạng thái / chỉ quá hạn.
+5. Tab **Hỏi đáp**: ghi câu hỏi làm rõ và văn bản của bên mời thầu. Tab **Hồ sơ nộp thầu**: chọn hồ sơ năng lực dùng cho gói và tải tài liệu nộp thầu.
+6. Khi mọi việc xong: **Đã nộp HSDT** (còn việc chưa xong thì bị chặn; người có quyền Duyệt mới được nộp bất chấp). Sau đó **Chuyển chấm thầu**, rồi **Trúng thầu** hoặc **Không trúng** (chọn lý do). Gói trúng thầu có nút **Tạo dự án từ gói thầu**.
+7. Tab **Lịch**: các mốc và hạn việc theo ngày, lọc "việc của tôi".
+
+**Thư viện hồ sơ năng lực** (menu _Hồ sơ năng lực_): giấy phép, chứng chỉ, báo cáo tài chính, hợp đồng tương tự, nhân sự chủ chốt, thiết bị, ISO. Nhập ngày hết hạn để được nhắc trước 30 ngày; đính kèm bản scan.
+
+**Hồ sơ tài liệu**: mọi hồ sơ kỹ thuật, nghiệm thu, QA/QC, HSE, hợp đồng, pháp lý; có phiên bản, gửi duyệt / nghiệm thu, khóa sau duyệt.
+
+**Vật tư & NCC**: danh mục vật tư (đơn vị, quy cách, nhà cung cấp) và nhà cung cấp (MST không trùng).
 
 ## 6.10 Nhân sự
 

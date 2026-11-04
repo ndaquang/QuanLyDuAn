@@ -12,8 +12,6 @@ from .views.catalog import (
     DocumentViewSet,
     MaterialViewSet,
     SupplierViewSet,
-    TenderItemViewSet,
-    TenderViewSet,
 )
 from .views.insights import AuditLogViewSet, DashboardView, NotificationViewSet, ReportView, SearchView
 from .views.org import DepartmentViewSet, EmployeeViewSet, PermissionCatalogueView, RoleViewSet
@@ -26,6 +24,12 @@ from .views.projects import (
     WorkLogViewSet,
 )
 from .views.tasks import TaskViewSet
+from .views.tenders import (
+    CapabilityDocumentViewSet,
+    TenderClarificationViewSet,
+    TenderItemViewSet,
+    TenderViewSet,
+)
 
 router = SimpleRouter(trailing_slash=True)
 router.register("projects", ProjectViewSet, basename="cx-project")
@@ -42,6 +46,8 @@ router.register("suppliers", SupplierViewSet, basename="cx-supplier")
 router.register("materials", MaterialViewSet, basename="cx-material")
 router.register("tenders", TenderViewSet, basename="cx-tender")
 router.register("tender-items", TenderItemViewSet, basename="cx-tender-item")
+router.register("tender-clarifications", TenderClarificationViewSet, basename="cx-tender-clarification")
+router.register("capability-documents", CapabilityDocumentViewSet, basename="cx-capability-document")
 router.register("documents", DocumentViewSet, basename="cx-document")
 router.register("attachments", AttachmentViewSet, basename="cx-attachment")
 router.register("approval-workflows", ApprovalWorkflowViewSet, basename="cx-approval-workflow")

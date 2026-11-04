@@ -460,32 +460,129 @@ class Material(WorkspaceScopedModel):
         ]
 
 
+class CapabilityDocument(WorkspaceScopedModel):
+    """Thư viện hồ sơ năng lực dùng chung cho mọi gói thầu (giấy phép, chứng chỉ, BCTC, HĐ tương tự...)."""
+
+    class Category(models.TextChoices):
+        LEGAL = "legal", "Pháp lý doanh nghiệp"
+        CERTIFICATE = "certificate", "Chứng chỉ năng lực hoạt động xây dựng"
+        FINANCIAL = "financial", "Báo cáo tài chính / thuế"
+        SIMILAR_CONTRACT = "similar_contract", "Hợp đồng tương tự"
+        PERSONNEL = "personnel", "Nhân sự chủ chốt"
+        EQUIPMENT = "equipment", "Máy móc thiết bị"
+        QUALITY = "quality", "ISO / Quản lý chất lượng - HSE"
+        OTHER = "other", "Khác"
+
+    category = models.CharField(max_length=32, choices=Category.choices)
+    title = models.CharField(max_length=255)
+    number = models.CharField(max_length=128, blank=True, default="", help_text="Số hiệu văn bản")
+    issuer = models.CharField(max_length=255, blank=True, default="", help_text="Cơ quan cấp / chủ đầu tư")
+    issue_date = models.DateField(null=True, blank=True)
+    expiry_date = models.DateField(null=True, blank=True)
+    notes = models.TextField(blank=True, default="")
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = "cx_capability_documents"
+        ordering = ("category", "title")
+
+    def __str__(self):
+        return self.title
+
+    @property
+    def is_expired(self):
+        return bool(self.expiry_date and self.expiry_date < timezone.localdate())
+
+
 class Tender(WorkspaceScopedModel):
-    """Gói thầu đang theo dõi (tiến độ đấu thầu)."""
+    """Gói thầu: từ khi nhận thông tin mời thầu đến khi có kết quả."""
 
     class Status(models.TextChoices):
-        PREPARING = "preparing", "Đang chuẩn bị hồ sơ"
+        SCREENING = "screening", "Đánh giá sơ bộ"
+        PREPARING = "preparing", "Đang lập HSDT"
         SUBMITTED = "submitted", "Đã nộp thầu"
+        EVALUATING = "evaluating", "Đang chấm thầu / thương thảo"
         WON = "won", "Trúng thầu"
         LOST = "lost", "Không trúng thầu"
-        CANCELLED = "cancelled", "Hủy / Không tham dự"
+        DECLINED = "declined", "Không tham dự"
+        CANCELLED = "cancelled", "Bên mời thầu hủy"
+
+    class Decision(models.TextChoices):
+        PENDING = "pending", "Chưa quyết định"
+        GO = "go", "Tham dự"
+        NO_GO = "no_go", "Không tham dự"
+
+    class SelectionMethod(models.TextChoices):
+        OPEN = "open", "Đấu thầu rộng rãi"
+        LIMITED = "limited", "Đấu thầu hạn chế"
+        DIRECT = "direct", "Chỉ định thầu"
+        COMPETITIVE = "competitive", "Chào hàng cạnh tranh"
+        PRIVATE_RFQ = "private_rfq", "Mời thầu nội bộ (dự án tư nhân)"
+        OTHER = "other", "Khác"
+
+    class PackageType(models.TextChoices):
+        CONSTRUCTION = "construction", "Thi công xây lắp"
+        MEP = "mep", "Cơ điện (MEP)"
+        EPC = "epc", "EPC / Tổng thầu"
+        DESIGN_BUILD = "design_build", "Thiết kế - Thi công"
+        SUPPLY_INSTALL = "supply_install", "Cung cấp & lắp đặt"
+        INTERIOR = "interior", "Hoàn thiện / Nội thất"
+        OTHER = "other", "Khác"
+
+    class SubmissionMethod(models.TextChoices):
+        ONLINE = "online", "Qua mạng (e-GP)"
+        DIRECT = "direct", "Nộp trực tiếp"
+        EMAIL = "email", "Email / bản mềm"
+
+    class LostReason(models.TextChoices):
+        TECHNICAL = "technical", "Không đạt kỹ thuật"
+        CAPABILITY = "capability", "Không đạt năng lực / kinh nghiệm"
+        ADMINISTRATIVE = "administrative", "Không hợp lệ hành chính"
+        OTHER = "other", "Khác"
+
+    OPEN_STATUSES = (Status.SCREENING, Status.PREPARING, Status.SUBMITTED, Status.EVALUATING)
 
     code = models.CharField(max_length=32)
     name = models.CharField(max_length=255)
     investor = models.CharField(max_length=255)
     location = models.CharField(max_length=500, blank=True, default="")
+    source = models.CharField(max_length=255, blank=True, default="", help_text="Nguồn thông tin mời thầu")
+    selection_method = models.CharField(max_length=16, choices=SelectionMethod.choices, default=SelectionMethod.OPEN)
+    package_type = models.CharField(max_length=16, choices=PackageType.choices, default=PackageType.CONSTRUCTION)
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
     )
     project = models.ForeignKey(
         "db.Project", on_delete=models.SET_NULL, null=True, blank=True, related_name="cx_tenders"
     )
+    # Key dates
     release_date = models.DateField(null=True, blank=True, help_text="Ngày phát hành HSMT")
+    site_visit_date = models.DateTimeField(null=True, blank=True, help_text="Khảo sát hiện trường")
+    pre_bid_meeting_date = models.DateTimeField(null=True, blank=True, help_text="Hội nghị tiền đấu thầu")
     clarification_deadline = models.DateField(null=True, blank=True)
     submission_deadline = models.DateTimeField()
-    bid_value = models.DecimalField(max_digits=18, decimal_places=0, default=ZERO, validators=[MinValueValidator(0)])
-    status = models.CharField(max_length=16, choices=Status.choices, default=Status.PREPARING)
+    opening_date = models.DateTimeField(null=True, blank=True, help_text="Mở thầu")
+    submission_method = models.CharField(
+        max_length=16, choices=SubmissionMethod.choices, default=SubmissionMethod.ONLINE
+    )
+    bid_validity_days = models.PositiveIntegerField(null=True, blank=True, help_text="Hiệu lực HSDT (ngày)")
+    submitted_at = models.DateTimeField(null=True, blank=True)
+    # Go / no-go
+    decision = models.CharField(max_length=16, choices=Decision.choices, default=Decision.PENDING)
+    decision_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
+    )
+    decision_at = models.DateTimeField(null=True, blank=True)
+    decision_note = models.TextField(blank=True, default="")
+    # Result
+    status = models.CharField(max_length=16, choices=Status.choices, default=Status.SCREENING)
+    result_date = models.DateField(null=True, blank=True)
+    winner_name = models.CharField(max_length=255, blank=True, default="")
+    lost_reason = models.CharField(max_length=16, choices=LostReason.choices, blank=True, default="")
     result_note = models.TextField(blank=True, default="")
+    capability_documents = models.ManyToManyField(
+        CapabilityDocument, blank=True, related_name="tenders", db_table="cx_tender_capabilities"
+    )
 
     class Meta:
         db_table = "cx_tenders"
@@ -496,6 +593,41 @@ class Tender(WorkspaceScopedModel):
             )
         ]
 
+    def __str__(self):
+        return f"{self.code} - {self.name}"
+
+    @property
+    def is_locked(self):
+        # Results are history: a closed tender is no longer edited.
+        return self.status in (self.Status.WON, self.Status.LOST, self.Status.DECLINED, self.Status.CANCELLED)
+
+
+class TenderClarification(WorkspaceScopedModel):
+    """Hỏi đáp làm rõ HSMT / văn bản sửa đổi HSMT."""
+
+    class Kind(models.TextChoices):
+        QUESTION = "question", "Câu hỏi làm rõ của nhà thầu"
+        ADDENDUM = "addendum", "Văn bản sửa đổi / làm rõ của bên mời thầu"
+
+    tender = models.ForeignKey(Tender, on_delete=models.CASCADE, related_name="clarifications")
+    kind = models.CharField(max_length=16, choices=Kind.choices, default=Kind.QUESTION)
+    reference = models.CharField(max_length=128, blank=True, default="", help_text="Số văn bản")
+    question = models.TextField()
+    asked_date = models.DateField(null=True, blank=True)
+    answer = models.TextField(blank=True, default="")
+    answered_date = models.DateField(null=True, blank=True)
+
+    class Meta:
+        db_table = "cx_tender_clarifications"
+        ordering = ("created_at",)
+
+    @property
+    def is_answered(self):
+        return bool(self.answer.strip())
+
+
+PRIORITY_CHOICES = (("urgent", "Khẩn cấp"), ("high", "Cao"), ("medium", "Trung bình"), ("low", "Thấp"))
+
 
 class TenderItem(WorkspaceScopedModel):
     """Một đầu mục hồ sơ cần chuẩn bị cho gói thầu."""
@@ -503,7 +635,7 @@ class TenderItem(WorkspaceScopedModel):
     class Category(models.TextChoices):
         LEGAL = "legal", "Hồ sơ pháp lý / năng lực"
         TECHNICAL = "technical", "Hồ sơ kỹ thuật"
-        FINANCIAL = "financial", "Hồ sơ tài chính / giá"
+        FINANCIAL = "financial", "Khối lượng / BOQ"
         OTHER = "other", "Khác"
 
     class Status(models.TextChoices):
@@ -517,13 +649,34 @@ class TenderItem(WorkspaceScopedModel):
     assignee = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
     )
+    description = models.TextField(blank=True, default="")
+    priority = models.CharField(max_length=16, choices=PRIORITY_CHOICES, default="medium")
     due_date = models.DateField(null=True, blank=True)
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.TODO)
+    completed_at = models.DateTimeField(null=True, blank=True)
     note = models.TextField(blank=True, default="")
+
+    def save(self, *args, **kwargs):
+        if self.status == self.Status.DONE:
+            self.completed_at = self.completed_at or timezone.now()
+        else:
+            self.completed_at = None
+        super().save(*args, **kwargs)
 
     class Meta:
         db_table = "cx_tender_items"
         ordering = ("due_date", "created_at")
+
+
+class TenderItemComment(WorkspaceScopedModel):
+    """Trao đổi trên một công việc của gói thầu."""
+
+    item = models.ForeignKey(TenderItem, on_delete=models.CASCADE, related_name="comments")
+    text = models.TextField()
+
+    class Meta:
+        db_table = "cx_tender_item_comments"
+        ordering = ("created_at",)
 
 
 class Document(WorkspaceScopedModel):
@@ -578,6 +731,8 @@ class Attachment(WorkspaceScopedModel):
         SCHEDULE_ITEM = "schedule_item", "Hạng mục tiến độ"
         APPROVAL_REQUEST = "approval_request", "Yêu cầu phê duyệt"
         TENDER = "tender", "Gói thầu"
+        TENDER_ITEM = "tender_item", "Công việc gói thầu"
+        CAPABILITY = "capability", "Hồ sơ năng lực"
 
     project = models.ForeignKey("db.Project", on_delete=models.CASCADE, null=True, blank=True, related_name="+")
     entity_type = models.CharField(max_length=32, choices=EntityType.choices)
@@ -740,6 +895,8 @@ class Notification(models.Model):
         ACCEPTANCE_REQUIRED = "acceptance_required", "Hồ sơ cần nghiệm thu"
         APPROVAL_RESULT = "approval_result", "Kết quả phê duyệt"
         SCHEDULE_DELAYED = "schedule_delayed", "Dự án chậm tiến độ"
+        TENDER_DEADLINE = "tender_deadline", "Hạn đấu thầu"
+        DOCUMENT_EXPIRY = "document_expiry", "Hồ sơ năng lực sắp hết hạn"
 
     id = models.UUIDField(default=uuid.uuid4, primary_key=True, editable=False)
     workspace = models.ForeignKey("db.Workspace", on_delete=models.CASCADE, related_name="+")

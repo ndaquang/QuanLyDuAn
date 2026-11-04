@@ -104,24 +104,56 @@ def ensure_workspace_setup(workspace, user=None):
         if not Department.objects.filter(workspace=workspace, code=code).exists():
             Department(workspace=workspace, code=code, name=name).save(created_by_id=getattr(user, "id", None))
 
-    for request_type, (name, steps) in DEFAULT_WORKFLOWS.items():
-        if ApprovalWorkflow.objects.filter(workspace=workspace, request_type=request_type).exists():
-            continue
-        workflow = ApprovalWorkflow(
-            workspace=workspace,
-            request_type=request_type,
-            name=name,
-            is_financial=request_type in FINANCIAL_REQUEST_TYPES,
-        )
-        workflow.save(created_by_id=getattr(user, "id", None))
-        for order, (step_name, kind, role_code, min_amount, budget_check) in enumerate(steps, start=1):
-            ApprovalStep(
-                workflow=workflow,
-                order=order,
-                name=step_name,
-                approver_kind=kind,
-                approver_role=roles.get(role_code) if role_code else None,
-                min_amount=min_amount,
-                requires_budget_check=budget_check,
-            ).save(created_by_id=getattr(user, "id", None))
+    for request_type in DEFAULT_WORKFLOWS:
+        ensure_default_workflow(workspace, request_type, roles, user)
     return roles
+
+
+def ensure_default_workflow(workspace, request_type, roles=None, user=None):
+    """Create the default workflow of ``request_type`` if the company has none (idempotent).
+
+    Lets companies configured before a request type existed pick it up on first use.
+    """
+    existing = ApprovalWorkflow.objects.filter(workspace=workspace, request_type=request_type).first()
+    if existing is not None:
+        return existing
+    if roles is None:
+        roles = {r.code: r for r in Role.objects.filter(workspace=workspace)}
+    name, steps = DEFAULT_WORKFLOWS[request_type]
+    workflow = ApprovalWorkflow(
+        workspace=workspace,
+        request_type=request_type,
+        name=name,
+        is_financial=request_type in FINANCIAL_REQUEST_TYPES,
+    )
+    workflow.save(created_by_id=getattr(user, "id", None))
+    for order, (step_name, kind, role_code, min_amount, budget_check) in enumerate(steps, start=1):
+        ApprovalStep(
+            workflow=workflow,
+            order=order,
+            name=step_name,
+            approver_kind=kind,
+            approver_role=roles.get(role_code) if role_code else None,
+            min_amount=min_amount,
+            requires_budget_check=budget_check,
+        ).save(created_by_id=getattr(user, "id", None))
+    return workflow
+
+
+# Standard structure of a Vietnamese bid dossier (HSDT xây lắp). Used by "Tạo danh mục hồ sơ mẫu".
+TENDER_CHECKLIST_TEMPLATE = [
+    ("legal", "Đơn dự thầu, thỏa thuận liên danh (nếu có)", -3),
+    ("legal", "Giấy ủy quyền ký HSDT", -3),
+    ("legal", "Giấy chứng nhận đăng ký doanh nghiệp, chứng chỉ năng lực hoạt động xây dựng", -5),
+    ("legal", "Báo cáo tài chính 3 năm gần nhất, xác nhận nghĩa vụ thuế", -5),
+    ("legal", "Hợp đồng tương tự đã thực hiện (kèm biên bản nghiệm thu, thanh lý)", -5),
+    ("technical", "Biện pháp tổ chức thi công tổng thể và chi tiết", -4),
+    ("technical", "Tiến độ thi công (Gantt), biểu đồ nhân lực - thiết bị", -4),
+    ("technical", "Danh sách nhân sự chủ chốt (CV, bằng cấp, chứng chỉ hành nghề)", -4),
+    ("technical", "Danh sách máy móc thiết bị thi công (sở hữu / thuê)", -4),
+    ("technical", "Biện pháp đảm bảo chất lượng, an toàn lao động, vệ sinh môi trường, PCCC", -4),
+    ("technical", "Danh mục vật liệu chính, catalogue, xuất xứ", -4),
+    ("financial", "Bóc tách khối lượng, kiểm tra BOQ / bảng tiên lượng", -6),
+    ("financial", "Rà soát yêu cầu HSMT, bảng khối lượng mời thầu", -6),
+    ("other", "Kiểm tra chéo, ký đóng dấu, nộp HSDT", 0),
+]

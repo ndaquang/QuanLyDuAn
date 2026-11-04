@@ -11,6 +11,7 @@ import { Spinner, UiProvider } from "@/components/ui";
 import { SessionProvider, useSession } from "@/lib/session";
 import { ApprovalDetailPage, ApprovalsPage } from "@/pages/Approvals";
 import { AuditPage } from "@/pages/Audit";
+import { CapabilitiesPage } from "@/pages/Capabilities";
 import { DashboardPage } from "@/pages/Dashboard";
 import { DocumentsPage } from "@/pages/Documents";
 import { EmployeeDetailPage, EmployeesPage } from "@/pages/Employees";
@@ -71,6 +72,7 @@ const router = createBrowserRouter(
         { path: "employees/:id", element: g("employee.view", <EmployeeDetailPage />) },
         { path: "tenders", element: g("tender.view", <TendersPage />) },
         { path: "tenders/:id", element: g("tender.view", <TenderDetailPage />) },
+        { path: "capabilities", element: g("capability.view", <CapabilitiesPage />) },
         { path: "documents", element: g("document.view", <DocumentsPage />) },
         { path: "materials", element: g(["material.view", "supplier.view"], <MaterialsPage />) },
         { path: "approvals", element: g("approval.view", <ApprovalsPage />) },

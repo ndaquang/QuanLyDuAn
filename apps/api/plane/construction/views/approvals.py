@@ -9,7 +9,7 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
 
-from ..models import ApprovalRequest, ApprovalWorkflow
+from ..models import ApprovalRequest, ApprovalWorkflow, RequestType
 from ..serializers import ApprovalRequestSerializer, ApprovalWorkflowSerializer
 from ..services import approvals, audit
 from ..services.sequences import next_code
@@ -91,6 +91,8 @@ class ApprovalRequestViewSet(CxViewSet):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         request_type = serializer.validated_data["request_type"]
+        if request_type == RequestType.BID_PRICE:
+            raise ValidationError({"request_type": "Tờ trình giá dự thầu được lập từ màn hình gói thầu."})
         workflow = ApprovalWorkflow.objects.filter(
             workspace=self.cx.workspace, request_type=request_type, is_active=True
         ).first()
@@ -119,6 +121,8 @@ class ApprovalRequestViewSet(CxViewSet):
             raise LockedError("Yêu cầu đang chờ duyệt hoặc đã kết thúc, không thể sửa / xóa.")
 
     def perform_update(self, serializer):
+        if serializer.instance.request_type == RequestType.BID_PRICE:
+            raise ValidationError({"request_type": "Giá dự thầu được sửa ở gói thầu, sau đó trình duyệt lại."})
         if (
             "request_type" in serializer.validated_data
             and serializer.validated_data["request_type"] != serializer.instance.request_type
@@ -135,6 +139,8 @@ class ApprovalRequestViewSet(CxViewSet):
 
     @action(detail=True, methods=["post"])
     def submit(self, request, slug, pk=None):
+        if self.get_object().request_type == RequestType.BID_PRICE:
+            raise ValidationError({"request_type": "Trình duyệt lại giá dự thầu từ màn hình gói thầu."})
         instance = approvals.submit(self.get_object(), request.user)
         audit.record(request, "submit", instance)
         return self._result(instance)

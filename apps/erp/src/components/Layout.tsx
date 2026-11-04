@@ -1,5 +1,6 @@
 import { clsx } from "clsx";
 import {
+  Award,
   Bell,
   BarChart3,
   Building2,
@@ -48,6 +49,7 @@ const MAIN: NavItem[] = [
 const MORE: NavItem[] = [
   { to: "/approvals", label: "Phê duyệt", icon: <ClipboardCheck className="size-4" />, perm: "approval.view" },
   { to: "/tenders", label: "Đấu thầu", icon: <Gavel className="size-4" />, perm: "tender.view" },
+  { to: "/capabilities", label: "Hồ sơ năng lực", icon: <Award className="size-4" />, perm: "capability.view" },
   { to: "/documents", label: "Hồ sơ tài liệu", icon: <FileStack className="size-4" />, perm: "document.view" },
   {
     to: "/materials",

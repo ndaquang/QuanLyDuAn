@@ -92,6 +92,111 @@ def run_reminders(today=None):
                 link=f"/projects/{pid}",
                 dedup_key=f"delayed:{pid}:{week}",
             )
+    sent += tender_reminders(today)
+    return sent
+
+
+TENDER_SUBMISSION_ALERT_DAYS = (7, 3, 1, 0)
+CAPABILITY_EXPIRY_DAYS = 30
+
+
+def tender_reminders(today):
+    """Tender deadlines, assigned tender tasks and expiring capability documents."""
+    from .models import CapabilityDocument, Employee, Tender, TenderItem
+
+    stamp = today.isoformat()
+    sent = 0
+    open_tenders = Tender.objects.filter(status__in=(Tender.Status.SCREENING, Tender.Status.PREPARING)).select_related(
+        "workspace"
+    )
+    for t in open_tenders:
+        days = (timezone.localtime(t.submission_deadline).date() - today).days
+        if days in TENDER_SUBMISSION_ALERT_DAYS:
+            assignees = set(
+                TenderItem.objects.filter(tender=t)
+                .exclude(status=TenderItem.Status.DONE)
+                .values_list("assignee_id", flat=True)
+            )
+            when = "HÔM NAY" if days == 0 else f"còn {days} ngày"
+            sent += notifications.notify(
+                t.workspace,
+                {t.owner_id, *assignees} - {None},
+                Notification.Type.TENDER_DEADLINE,
+                f"[{t.code}] Hạn nộp thầu {when} ({timezone.localtime(t.submission_deadline):%d/%m %H:%M}): {t.name}",
+                message="Kiểm tra mọi công việc đã hoàn thành và hồ sơ đã đủ.",
+                entity_type="tender",
+                entity_id=t.id,
+                link=f"/tenders/{t.id}",
+                dedup_key=f"tender:submission:{t.id}:{stamp}",
+            )
+        for kind, label, value in (
+            ("clarification", "Hạn hỏi đáp làm rõ HSMT", t.clarification_deadline),
+            ("site_visit", "Khảo sát hiện trường", t.site_visit_date and timezone.localtime(t.site_visit_date).date()),
+            (
+                "pre_bid",
+                "Hội nghị tiền đấu thầu",
+                t.pre_bid_meeting_date and timezone.localtime(t.pre_bid_meeting_date).date(),
+            ),
+        ):
+            if value and 0 <= (value - today).days <= 1:
+                sent += notifications.notify(
+                    t.workspace,
+                    [t.owner_id] if t.owner_id else [],
+                    Notification.Type.TENDER_DEADLINE,
+                    f"[{t.code}] {label} {'hôm nay' if value == today else 'ngày mai'}: {t.name}",
+                    entity_type="tender",
+                    entity_id=t.id,
+                    link=f"/tenders/{t.id}",
+                    dedup_key=f"tender:{kind}:{t.id}:{stamp}",
+                )
+
+    items = (
+        TenderItem.objects.filter(
+            tender__status__in=(Tender.Status.SCREENING, Tender.Status.PREPARING),
+            tender__deleted_at__isnull=True,
+            assignee__isnull=False,
+            due_date__lte=today + timedelta(days=1),
+        )
+        .exclude(status=TenderItem.Status.DONE)
+        .select_related("tender", "tender__workspace")
+    )
+    for item in items:
+        overdue = item.due_date < today
+        recipients = [item.assignee_id] + ([item.tender.owner_id] if overdue and item.tender.owner_id else [])
+        sent += notifications.notify(
+            item.tender.workspace,
+            recipients,
+            Notification.Type.TASK_OVERDUE if overdue else Notification.Type.TASK_DUE_SOON,
+            f"[{item.tender.code}] {'Quá hạn' if overdue else 'Sắp đến hạn'} công việc thầu: {item.name}",
+            entity_type="tender_item",
+            entity_id=item.id,
+            link=f"/tenders/{item.tender_id}?tab=tasks&item={item.id}",
+            dedup_key=f"tender:item:{item.id}:{stamp}",
+        )
+
+    week = f"{today.isocalendar()[0]}-W{today.isocalendar()[1]}"
+    expiring = CapabilityDocument.objects.filter(
+        is_active=True, expiry_date__isnull=False, expiry_date__lte=today + timedelta(days=CAPABILITY_EXPIRY_DAYS)
+    ).select_related("workspace")
+    for doc in expiring:
+        keepers = Employee.objects.filter(
+            workspace=doc.workspace,
+            status=Employee.Status.ACTIVE,
+            user__isnull=False,
+            role__role_permissions__permission__code="capability.update",
+        ).values_list("user_id", flat=True)
+        state = "ĐÃ HẾT HẠN" if doc.expiry_date < today else f"hết hạn {doc.expiry_date:%d/%m/%Y}"
+        sent += notifications.notify(
+            doc.workspace,
+            set(keepers),
+            Notification.Type.DOCUMENT_EXPIRY,
+            f"Hồ sơ năng lực {state}: {doc.title}",
+            message="Cập nhật bản mới để dùng cho các gói thầu.",
+            entity_type="capability",
+            entity_id=doc.id,
+            link=f"/capabilities?id={doc.id}",
+            dedup_key=f"capability:{doc.id}:{week}",
+        )
     return sent
 
 

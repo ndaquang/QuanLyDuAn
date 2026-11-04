@@ -18,7 +18,8 @@ const TYPES = [
   { value: "acceptance_required", label: "Hồ sơ cần nghiệm thu" },
   { value: "approval_result", label: "Kết quả phê duyệt" },
   { value: "schedule_delayed", label: "Chậm tiến độ" },
-  { value: "budget_overrun", label: "Vượt ngân sách" },
+  { value: "tender_deadline", label: "Hạn đấu thầu" },
+  { value: "document_expiry", label: "Hồ sơ năng lực sắp hết hạn" },
 ];
 
 export function NotificationsPage() {

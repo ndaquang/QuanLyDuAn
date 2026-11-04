@@ -215,29 +215,118 @@ export interface Tender {
   name: string;
   investor: string;
   location: string;
+  source: string;
+  selection_method: string;
+  package_type: string;
   owner: string | null;
   owner_detail: UserBrief | null;
   project: string | null;
   project_name: string | null;
   release_date: string | null;
+  site_visit_date: string | null;
+  pre_bid_meeting_date: string | null;
   clarification_deadline: string | null;
   submission_deadline: string;
-  bid_value: string;
+  opening_date: string | null;
+  submission_method: string;
+  bid_validity_days: number | null;
+  submitted_at: string | null;
+  decision: string;
+  decision_by_detail: UserBrief | null;
+  decision_at: string | null;
+  decision_note: string;
   status: string;
+  status_label: string;
+  result_date: string | null;
+  winner_name: string;
+  lost_reason: string;
   result_note: string;
-  checklist: { total: number; done: number; percent: number };
+  capability_document_ids: string[];
+  checklist: { total: number; done: number; percent: number; overdue: number };
+  counts: { clarifications_open: number; documents: number } | null;
+  is_locked: boolean;
+  created_at: string;
 }
 
 export interface TenderItem {
   id: string;
   tender: string;
+  tender_code: string;
+  tender_name: string;
   name: string;
+  description: string;
   category: string;
+  priority: string;
   assignee: string | null;
   assignee_detail: UserBrief | null;
+  created_by_detail: UserBrief | null;
   due_date: string | null;
   status: string;
+  completed_at: string | null;
   note: string;
+  is_overdue: boolean;
+  comment_count: number;
+  attachment_count: number;
+  created_at: string;
+}
+
+export interface TenderComment {
+  id: string;
+  text: string;
+  author: UserBrief | null;
+  created_at: string;
+}
+
+export interface TenderClarification {
+  id: string;
+  tender: string;
+  kind: string;
+  reference: string;
+  question: string;
+  asked_date: string | null;
+  answer: string;
+  answered_date: string | null;
+  is_answered: boolean;
+  created_by_detail: UserBrief | null;
+}
+
+export interface CapabilityDoc {
+  id: string;
+  category: string;
+  title: string;
+  number: string;
+  issuer: string;
+  issue_date: string | null;
+  expiry_date: string | null;
+  notes: string;
+  is_active: boolean;
+  is_expired: boolean;
+  days_to_expiry: number | null;
+  attachment_count: number;
+  tender_count: number;
+}
+
+export interface TenderStats {
+  total: number;
+  by_status: { status: string; label: string; count: number }[];
+  open: number;
+  due_7_days: number;
+  won: number;
+  lost: number;
+  win_rate: number | null;
+  lost_reasons: { reason: string; label: string; count: number }[];
+  tasks: { open: number; overdue: number; done: number; mine_open: number; mine_overdue: number };
+}
+
+export interface TenderEvent {
+  tender_id: string;
+  code: string;
+  name: string;
+  kind: string;
+  label: string;
+  date: string;
+  at: string | null;
+  owner: UserBrief | null;
 }
 
 export interface Supplier {

@@ -250,21 +250,31 @@ class Command(BaseCommand):
             name="Gói thầu xây lắp nhà kho lạnh Long An",
             investor="Công ty CP Thực phẩm Đông Nam",
             owner=users["procurement"],
+            decision="go",
+            status="preparing",
+            decision_by=director,
+            decision_at=timezone.now(),
+            release_date=today - timedelta(days=5),
+            clarification_deadline=today + timedelta(days=2),
+            site_visit_date=timezone.now() + timedelta(days=1),
             submission_deadline=timezone.now() + timedelta(days=9),
-            bid_value=Decimal("15200000000"),
         )
         tender.save(created_by_id=director.id)
-        for name, cat, who, days, st in [
-            ("Hồ sơ năng lực, pháp lý", "legal", "hr_admin", 3, "done"),
-            ("Biện pháp thi công", "technical", "civil_engineer", 6, "in_progress"),
-            ("Bóc tách khối lượng, lập giá dự thầu", "financial", "qs", 7, "in_progress"),
-            ("Bảo lãnh dự thầu", "financial", "accountant", 8, "todo"),
+        for name, cat, who, days, st, prio in [
+            ("Hồ sơ năng lực, pháp lý", "legal", "hr_admin", 3, "done", "medium"),
+            ("Biện pháp tổ chức thi công", "technical", "civil_engineer", 6, "in_progress", "high"),
+            ("Tiến độ thi công và biểu đồ nhân lực", "technical", "civil_engineer", 6, "todo", "high"),
+            ("Biện pháp an toàn - môi trường", "technical", "hse", 5, "todo", "medium"),
+            ("Hệ thống cơ điện (MEP) và vật liệu chính", "technical", "mep_engineer", 6, "in_progress", "medium"),
+            ("Bóc tách khối lượng, kiểm tra BOQ", "financial", "qs", 7, "in_progress", "urgent"),
+            ("Kiểm tra chéo, ký đóng dấu, nộp HSDT", "other", "procurement", 8, "todo", "urgent"),
         ]:
             TenderItem(
                 workspace=workspace,
                 tender=tender,
                 name=name,
                 category=cat,
+                priority=prio,
                 assignee=users[who],
                 due_date=today + timedelta(days=days),
                 status=st,

@@ -22,6 +22,7 @@ from ..models import (
     Notification,
     ScheduleItem,
     Supplier,
+    CapabilityDocument,
     Tender,
     TenderItem,
 )
@@ -30,8 +31,6 @@ from ..serializers import (
     DocumentSerializer,
     MaterialSerializer,
     SupplierSerializer,
-    TenderItemSerializer,
-    TenderSerializer,
 )
 from ..services import audit, files, notifications
 from .base import CxViewSet, LockedError
@@ -82,43 +81,6 @@ class MaterialViewSet(CxViewSet):
         ("Nhà cung cấp", "supplier_name"),
         ("Đơn giá tham khảo", "reference_price"),
     ]
-
-
-class TenderViewSet(CxViewSet):
-    model = Tender
-    serializer_class = TenderSerializer
-    permission_module = "tender"
-    select_related = ("owner", "project")
-    search_fields = ("code", "name", "investor", "location")
-    filter_fields = {
-        "status": "status__in",
-        "owner": "owner_id",
-        "deadline_from": "submission_deadline__date__gte",
-        "deadline_to": "submission_deadline__date__lte",
-    }
-    ordering_fields = ("submission_deadline", "code", "bid_value", "created_at")
-    export_title = "Theo dõi đấu thầu"
-    export_columns = [
-        ("Mã gói thầu", "code"),
-        ("Tên gói thầu", "name"),
-        ("Chủ đầu tư", "investor"),
-        ("Người phụ trách", "owner_detail"),
-        ("Hạn nộp thầu", "submission_deadline"),
-        ("Giá dự thầu", "bid_value"),
-        ("Trạng thái", "status"),
-        ("Hồ sơ hoàn thành (%)", "checklist.percent"),
-    ]
-
-
-class TenderItemViewSet(CxViewSet):
-    model = TenderItem
-    serializer_class = TenderItemSerializer
-    permission_module = "tender"
-    select_related = ("assignee",)
-    filter_fields = {"tender": "tender_id", "status": "status"}
-
-    def get_queryset(self):
-        return super().get_queryset().filter(tender__deleted_at__isnull=True)
 
 
 class DocumentViewSet(CxViewSet):
@@ -223,6 +185,8 @@ def _resolve_parent(cx, entity_type, entity_id):
         "document": (Document.objects.filter(workspace=ws), "document", "project_id"),
         "schedule_item": (ScheduleItem.objects.filter(workspace=ws), "schedule", "project_id"),
         "tender": (Tender.objects.filter(workspace=ws), "tender", None),
+        "tender_item": (TenderItem.objects.filter(workspace=ws), "tender_item", None),
+        "capability": (CapabilityDocument.objects.filter(workspace=ws), "capability", None),
         "approval_request": (ApprovalRequest.objects.filter(workspace=ws), "approval", "project_id"),
         "task": (
             Issue.issue_objects.filter(workspace=ws, project__construction_profile__isnull=False),
@@ -275,6 +239,13 @@ class AttachmentViewSet(CxViewSet):
             self.cx.require("task.view")
             if write and not self.cx.has("task.update"):
                 if not parent.assignees.filter(id=self.request.user.id).exists():
+                    raise PermissionDenied("Bạn không có quyền đính kèm tệp cho công việc này.")
+        elif module == "tender_item":
+            self.cx.require("tender.view")
+            if write:
+                if parent.tender.is_locked:
+                    raise LockedError("Gói thầu đã đóng, không thể thay đổi tệp.")
+                if not self.cx.has("tender.update") and parent.assignee_id != self.request.user.id:
                     raise PermissionDenied("Bạn không có quyền đính kèm tệp cho công việc này.")
         else:
             self.cx.require(f"{module}.{'update' if write else 'view'}")

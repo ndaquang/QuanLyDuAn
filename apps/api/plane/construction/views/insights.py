@@ -31,6 +31,7 @@ from ..models import (
     ProjectProfile,
     ScheduleItem,
     Tender,
+    TenderItem,
     WorkLog,
 )
 from ..serializers import AuditLogSerializer, NotificationSerializer, user_brief
@@ -153,7 +154,7 @@ class DashboardView(CxAPIView):
                 }
                 for t in Tender.objects.filter(
                     workspace=self.cx.workspace,
-                    status=Tender.Status.PREPARING,
+                    status__in=(Tender.Status.SCREENING, Tender.Status.PREPARING),
                     submission_deadline__date__gte=today,
                     submission_deadline__date__lte=today + timedelta(days=14),
                 ).order_by("submission_deadline")[:5]
@@ -227,6 +228,7 @@ class ReportView(CxAPIView):
             "project-summary": self.project_summary,
             "progress": self.progress,
             "hr-efficiency": self.hr_efficiency,
+            "tenders": self.tenders,
         }.get(report)
         if builder is None:
             return Response({"error": "Báo cáo không tồn tại."}, status=status.HTTP_404_NOT_FOUND)
@@ -356,6 +358,63 @@ class ReportView(CxAPIView):
             ("Chênh lệch", "variance"), ("Trạng thái", "status"), ("Số ngày trễ", "late_days"),
         ]  # fmt: skip
         return "Báo cáo tiến độ thi công", columns, rows, {"Tính đến ngày": as_of}
+
+    # 4. Báo cáo đấu thầu (tiến độ chuẩn bị và kết quả, không có số liệu giá)
+    def tenders(self, request):
+        self.cx.require("tender.view")
+        date_from, date_to = _date_param(request, "date_from"), _date_param(request, "date_to")
+        qs = Tender.objects.filter(workspace=self.cx.workspace).select_related("owner")
+        if date_from:
+            qs = qs.filter(submission_deadline__date__gte=date_from)
+        if date_to:
+            qs = qs.filter(submission_deadline__date__lte=date_to)
+        if request.query_params.get("status"):
+            qs = qs.filter(status__in=request.query_params["status"].split(","))
+        today = timezone.localdate()
+        stats = defaultdict(lambda: {"total": 0, "done": 0, "overdue": 0})
+        for item in TenderItem.objects.filter(tender__in=qs).values("tender_id", "status", "due_date"):
+            st = stats[item["tender_id"]]
+            st["total"] += 1
+            if item["status"] == TenderItem.Status.DONE:
+                st["done"] += 1
+            elif item["due_date"] and item["due_date"] < today:
+                st["overdue"] += 1
+        rows = []
+        for t in qs.order_by("submission_deadline"):
+            st = stats[t.id]
+            rows.append(
+                {
+                    "code": t.code,
+                    "name": t.name,
+                    "investor": t.investor,
+                    "package_type": t.get_package_type_display(),
+                    "selection_method": t.get_selection_method_display(),
+                    "owner": user_brief(t.owner)["display_name"] if t.owner else "",
+                    "submission_deadline": timezone.localtime(t.submission_deadline).date().isoformat(),
+                    "status": t.get_status_display(),
+                    "tasks_total": st["total"],
+                    "tasks_done": st["done"],
+                    "tasks_overdue": st["overdue"],
+                    "progress": round(st["done"] * 100 / st["total"], 1) if st["total"] else None,
+                    "winner_name": t.winner_name,
+                    "lost_reason": t.get_lost_reason_display() if t.lost_reason else "",
+                }
+            )
+        won = sum(1 for t in qs if t.status == Tender.Status.WON)
+        lost = sum(1 for t in qs if t.status == Tender.Status.LOST)
+        columns = [
+            ("Mã", "code"), ("Gói thầu", "name"), ("Bên mời thầu", "investor"), ("Loại", "package_type"),
+            ("Hình thức", "selection_method"), ("Phụ trách", "owner"), ("Hạn nộp", "submission_deadline"),
+            ("Trạng thái", "status"), ("Số công việc", "tasks_total"), ("Đã xong", "tasks_done"),
+            ("Quá hạn", "tasks_overdue"), ("Tiến độ hồ sơ (%)", "progress"), ("Nhà thầu trúng", "winner_name"),
+            ("Lý do không trúng", "lost_reason"),
+        ]  # fmt: skip
+        meta = {
+            "Từ ngày": date_from,
+            "Đến ngày": date_to,
+            "Tỷ lệ trúng thầu": f"{round(won * 100 / (won + lost), 1)}% ({won}/{won + lost})" if won + lost else None,
+        }
+        return "Báo cáo đấu thầu", columns, rows, meta
 
     # 3. Báo cáo hiệu quả nhân sự
     def hr_efficiency(self, request):

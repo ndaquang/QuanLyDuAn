@@ -85,17 +85,60 @@ export const DOCUMENT_CATEGORY = opts([
 ]);
 
 export const TENDER_STATUS = opts([
-  ["preparing", "Đang chuẩn bị", "blue"],
+  ["screening", "Đánh giá sơ bộ", "violet"],
+  ["preparing", "Đang lập HSDT", "blue"],
   ["submitted", "Đã nộp thầu", "amber"],
+  ["evaluating", "Đang chấm thầu", "amber"],
   ["won", "Trúng thầu", "green"],
-  ["lost", "Không trúng", "red"],
-  ["cancelled", "Hủy / Không dự", "gray"],
+  ["lost", "Không trúng thầu", "red"],
+  ["declined", "Không tham dự", "gray"],
+  ["cancelled", "Bên mời thầu hủy", "gray"],
+]);
+
+export const TENDER_OPEN_STATUSES = ["screening", "preparing", "submitted", "evaluating"];
+
+export const TENDER_DECISION = opts([
+  ["pending", "Chưa quyết định", "gray"],
+  ["go", "Tham dự", "green"],
+  ["no_go", "Không tham dự", "red"],
+]);
+
+export const SELECTION_METHOD = opts([
+  ["open", "Đấu thầu rộng rãi"],
+  ["limited", "Đấu thầu hạn chế"],
+  ["direct", "Chỉ định thầu"],
+  ["competitive", "Chào hàng cạnh tranh"],
+  ["private_rfq", "Mời báo giá (dự án tư nhân)"],
+  ["other", "Khác"],
+]);
+
+export const PACKAGE_TYPE = opts([
+  ["construction", "Thi công xây lắp"],
+  ["mep", "Cơ điện (MEP)"],
+  ["epc", "EPC / Tổng thầu"],
+  ["design_build", "Thiết kế - Thi công"],
+  ["supply_install", "Cung cấp & lắp đặt"],
+  ["interior", "Hoàn thiện / Nội thất"],
+  ["other", "Khác"],
+]);
+
+export const SUBMISSION_METHOD = opts([
+  ["online", "Qua mạng (e-GP)"],
+  ["direct", "Nộp trực tiếp"],
+  ["email", "Email / bản mềm"],
+]);
+
+export const LOST_REASON = opts([
+  ["technical", "Không đạt kỹ thuật"],
+  ["capability", "Không đạt năng lực / kinh nghiệm"],
+  ["administrative", "Không hợp lệ hành chính"],
+  ["other", "Khác"],
 ]);
 
 export const TENDER_ITEM_CATEGORY = opts([
   ["legal", "Pháp lý / năng lực"],
   ["technical", "Kỹ thuật"],
-  ["financial", "Tài chính / giá"],
+  ["financial", "Khối lượng / BOQ"],
   ["other", "Khác"],
 ]);
 
@@ -103,6 +146,17 @@ export const TENDER_ITEM_STATUS = opts([
   ["todo", "Chưa làm", "gray"],
   ["in_progress", "Đang làm", "blue"],
   ["done", "Hoàn thành", "green"],
+]);
+
+export const CAPABILITY_CATEGORY = opts([
+  ["legal", "Pháp lý doanh nghiệp"],
+  ["certificate", "Chứng chỉ năng lực hoạt động xây dựng"],
+  ["financial", "Báo cáo tài chính / thuế"],
+  ["similar_contract", "Hợp đồng tương tự"],
+  ["personnel", "Nhân sự chủ chốt"],
+  ["equipment", "Máy móc thiết bị"],
+  ["quality", "ISO / Chất lượng - HSE"],
+  ["other", "Khác"],
 ]);
 
 export const EMPLOYEE_STATUS = opts([

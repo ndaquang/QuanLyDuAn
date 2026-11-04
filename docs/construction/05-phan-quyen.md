@@ -22,7 +22,8 @@ X = Xem, T = Thêm, S = Sửa, Xóa, D = Duyệt.
 | Nhân sự              | X, T, S, Xóa    | X                  | X              | X         | —            | X             | —                           | X, T, S, Xóa         | —       |
 | Phòng ban            | X, T, S, Xóa    | X                  | —              | —         | —            | —             | —                           | X, T, S, Xóa         | —       |
 | Hồ sơ kỹ thuật       | X, T, S, Xóa, D | X, T, S, Xóa, D    | X, T, S        | X, T, S   | X, T, S      | X, T, S       | X, T                        | X, T, S, Xóa, D      | X       |
-| Đấu thầu             | X, T, S, Xóa    | X                  | —              | —         | X, T, S      | —             | X, T, S, Xóa                | X                    | X       |
+| Đấu thầu             | X, T, S, Xóa, D | X, S               | X              | X         | X, T, S      | —             | X, T, S, Xóa                | X                    | X       |
+| Hồ sơ năng lực       | X, T, S, Xóa    | X                  | X              | X         | X            | —             | X, T, S                     | X, T, S, Xóa         | X       |
 | Vật tư               | X, T, S, Xóa    | X                  | X              | X         | X, T, S      | —             | X, T, S, Xóa                | —                    | X       |
 | Nhà cung cấp         | X, T, S, Xóa    | X                  | —              | —         | X            | —             | X, T, S, Xóa                | —                    | X       |
 | Yêu cầu phê duyệt    | X, T            | X, T               | X, T           | X, T      | X, T         | X, T          | X, T                        | X, T                 | X, T    |
@@ -32,13 +33,14 @@ X = Xem, T = Thêm, S = Sửa, Xóa, D = Duyệt.
 | Phân quyền           | X, S            | —                  | —              | —         | —            | —             | —                           | —                    | —       |
 | Tài khoản người dùng | T, S            | —                  | —              | —         | —            | —             | —                           | T, S                 | —       |
 
-Xem tất cả dự án: Giám đốc, Trưởng phòng dự án, Nhân sự - Hành chính, Kế toán
+Xem tất cả dự án: Giám đốc, Trưởng phòng dự án, Nhân sự - Hành chính, Kế toán.
 
 Ghi chú:
 
 - "Yêu cầu phê duyệt - Xem" chỉ hiển thị yêu cầu của chính mình, yêu cầu mình đã/đang duyệt; Giám đốc (có "Cấu hình luồng duyệt - Xem") thấy toàn bộ.
 - Nhân sự - Hành chính quản lý hồ sơ nhân sự và tạo tài khoản, nhưng **gán vai trò** cần quyền "Phân quyền - Sửa" (mặc định chỉ Giám đốc) - tách bạch việc cấp quyền.
 - Báo cáo hiệu quả nhân sự cần thêm quyền "Nhân sự - Xem".
+- **Đấu thầu**: quyền **Duyệt** = quyết định tham dự / không tham dự một gói thầu và cho phép nộp hồ sơ khi công việc chưa xong hết (mặc định chỉ Giám đốc). Người được giao một công việc thầu luôn cập nhật được trạng thái, ghi chú, bình luận và tệp của việc mình dù không có quyền Sửa.
 
 ## 5.3 Khóa dữ liệu
 
