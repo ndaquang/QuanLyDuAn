@@ -9,7 +9,7 @@
     { "source": "/erp/assets/:path*", "destination": "/assets/:path*" },
     { "source": "/erp/favicon.svg", "destination": "/favicon.svg" },
     { "source": "/erp", "destination": "/index.html" },
-    { "source": "/erp/:path*", "destination": "/index.html" }
+    { "source": "/erp/(.*)", "destination": "/index.html" }
   ],
   "headers": [
     {
