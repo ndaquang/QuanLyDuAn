@@ -114,21 +114,39 @@ cmd_company() {
   (cd "$API" && uv run python manage.py construction_setup "$@")
 }
 
+SERVER_PIDS=()
+STOPPED=0
+
+# Stop a process and all its descendants (pnpm -> vite, uv -> python ...).
+kill_tree() {
+  local child
+  for child in $(pgrep -P "$1" 2>/dev/null); do
+    kill_tree "$child"
+  done
+  kill "$1" 2>/dev/null || true
+}
+
+stop_servers() {
+  [ "$STOPPED" = 1 ] && return
+  STOPPED=1
+  say "Dừng máy chủ"
+  local pid
+  for pid in "${SERVER_PIDS[@]:-}"; do
+    [ -n "$pid" ] && kill_tree "$pid"
+  done
+}
+
 cmd_start() {
   load_env
   check_services
-  local pids=()
-  cleanup() {
-    say "Dừng máy chủ"
-    kill "${pids[@]}" 2>/dev/null || true
-  }
-  trap cleanup EXIT INT TERM
+  trap stop_servers EXIT
+  trap 'stop_servers; exit 130' INT TERM
   say "Chạy API tại http://localhost:$API_PORT"
   (cd "$API" && exec uv run python manage.py runserver "0.0.0.0:$API_PORT") &
-  pids+=($!)
-  say "Chạy giao diện ERP tại http://localhost:$ERP_PORT/erp/"
+  SERVER_PIDS+=($!)
+  say "Chạy giao diện ERP tại http://localhost:$ERP_PORT/erp/ (Ctrl+C để dừng)"
   (cd "$ERP" && ERP_API_TARGET="http://localhost:$API_PORT" exec pnpm exec vite --port "$ERP_PORT" --strictPort --host 0.0.0.0) &
-  pids+=($!)
+  SERVER_PIDS+=($!)
   wait
 }
 
