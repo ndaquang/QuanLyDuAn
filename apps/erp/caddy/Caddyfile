@@ -1,0 +1,30 @@
+{
+	servers {
+		trusted_proxies static private_ranges
+	}
+}
+
+:3000 {
+	root * /usr/share/caddy/html
+
+	header {
+		X-Frame-Options "DENY"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "same-origin"
+	}
+
+	# Hashed assets can be cached for a long time; index.html must not be.
+	@assets path /erp/assets/*
+	header @assets Cache-Control "public, max-age=31536000, immutable"
+	@html path /erp /erp/ /erp/index.html
+	header @html Cache-Control "no-cache"
+
+	# SPA fallback: the ERP build is served from /erp
+	try_files {path} /erp/index.html
+	file_server
+
+	log {
+		output stdout
+		format console
+	}
+}

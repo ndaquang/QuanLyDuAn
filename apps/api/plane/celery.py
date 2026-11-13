@@ -98,6 +98,11 @@ app.conf.beat_schedule = {
         "task": "plane.bgtasks.exporter_expired_task.delete_old_s3_link",
         "schedule": crontab(hour=3, minute=45),  # UTC 03:45
     },
+    # Construction ERP: due-soon / overdue / behind-schedule reminders
+    "construction-daily-reminders": {
+        "task": "plane.construction.tasks.construction_daily_reminders",
+        "schedule": crontab(hour=0, minute=15),  # UTC 00:15 = 07:15 Vietnam time
+    },
 }
 
 

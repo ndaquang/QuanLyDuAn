@@ -1,0 +1,55 @@
+@import "tailwindcss";
+
+@theme {
+  --color-navy-950: #0b1b31;
+  --color-navy-900: #10264a;
+  --color-navy-800: #16325a;
+  --color-navy-700: #1e3a5f;
+  --color-navy-600: #2a4d7a;
+  --color-navy-100: #dbe5f1;
+  --color-navy-50: #eef3f9;
+  /* "xanh xây dựng" - construction blue accent */
+  --color-brand-700: #0369a1;
+  --color-brand-600: #0284c7;
+  --color-brand-500: #0ea5e9;
+  --color-brand-100: #e0f2fe;
+  --color-brand-50: #f0f9ff;
+  --font-sans: "Inter", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  @apply bg-slate-50 text-slate-800 antialiased;
+}
+
+/* Compact, readable data tables */
+.cx-table th {
+  @apply bg-slate-50 px-3 py-2 text-left text-xs font-semibold tracking-wide whitespace-nowrap text-slate-500 uppercase;
+}
+.cx-table td {
+  @apply border-t border-slate-100 px-3 py-2 align-middle text-sm;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: white;
+  }
+  .print-full {
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+  .cx-table td,
+  .cx-table th {
+    font-size: 10px;
+    padding: 4px 6px;
+  }
+}
