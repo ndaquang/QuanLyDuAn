@@ -93,7 +93,8 @@ Kiểm tra khôi phục thử mỗi quý trên máy khác.
 
 Vercel chỉ chạy được phần giao diện tĩnh `apps/erp`; API Django (`apps/api`), PostgreSQL, Redis, worker vẫn phải chạy trên máy chủ riêng (mục 7.1-7.3).
 
-1. Vercel → **Add New Project** → chọn repo này → **Root Directory**: `apps/erp` (giữ bật "Include files outside the root directory"). Các lệnh cài đặt/build đã khai báo trong `apps/erp/vercel.json` (pnpm 11, `--frozen-lockfile`).
+1. Vercel → **Add New Project** → chọn repo này. **Root Directory**: để trống (thư mục gốc, dùng `vercel.json` ở gốc repo) hoặc `apps/erp` (dùng `apps/erp/vercel.json`, giữ bật "Include files outside the root directory"). Không chọn `apps/admin`/`apps/web` - đó là các ứng dụng Plane khác. Lệnh cài đặt/build đã khai báo sẵn (pnpm 11, `--frozen-lockfile`), không cần nhập.
+   - **Settings → Environments → Production → Branch Tracking**: chọn nhánh `preview` (nhánh mặc định của repo), nếu không bản Production sẽ không được cập nhật.
 2. Deploy. Truy cập `https://<ten-du-an>.vercel.app/` sẽ tự chuyển tới `/erp/`.
 3. Nối API: để cookie phiên dùng chung nguồn gốc, thêm vào đầu mảng `rewrites` của `apps/erp/vercel.json` (thay `api.congty.vn` bằng tên miền máy chủ API thật):
 

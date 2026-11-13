@@ -1,0 +1,28 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "vite",
+  "installCommand": "npm install -g pnpm@11.10.0 && pnpm install --frozen-lockfile --filter erp...",
+  "buildCommand": "pnpm --filter erp run build",
+  "outputDirectory": "apps/erp/dist",
+  "redirects": [{ "source": "/", "destination": "/erp/", "permanent": false }],
+  "rewrites": [
+    { "source": "/erp/assets/:path*", "destination": "/assets/:path*" },
+    { "source": "/erp/favicon.svg", "destination": "/favicon.svg" },
+    { "source": "/erp", "destination": "/index.html" },
+    { "source": "/erp/:path*", "destination": "/index.html" }
+  ],
+  "headers": [
+    {
+      "source": "/erp/assets/(.*)",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
+    },
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "Referrer-Policy", "value": "same-origin" }
+      ]
+    }
+  ]
+}
