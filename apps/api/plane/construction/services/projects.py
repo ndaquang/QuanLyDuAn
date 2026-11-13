@@ -5,6 +5,7 @@
 """Create / maintain the Plane project behind each construction project."""
 
 import re
+import uuid
 
 from django.db import transaction
 from rest_framework.exceptions import ValidationError
@@ -24,8 +25,21 @@ def _identifier_from_code(workspace, code):
     return candidate
 
 
+def _normalise_ids(user_ids):
+    """Accept UUIDs or their string form (JSON); reject anything else with a 400."""
+    out = set()
+    for u in user_ids:
+        if not u:
+            continue
+        try:
+            out.add(uuid.UUID(str(u)))
+        except (TypeError, ValueError):
+            raise ValidationError({"member_ids": "Mã người dùng không hợp lệ."})
+    return out
+
+
 def _ensure_workspace_members(workspace, user_ids):
-    user_ids = {u for u in user_ids if u}
+    user_ids = _normalise_ids(user_ids)
     active = set(
         WorkspaceMember.objects.filter(workspace=workspace, member_id__in=user_ids, is_active=True).values_list(
             "member_id", flat=True

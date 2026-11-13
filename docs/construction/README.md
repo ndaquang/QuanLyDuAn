@@ -19,7 +19,40 @@
 6. [Hướng dẫn sử dụng](06-huong-dan-su-dung.md)
 7. [Triển khai, sao lưu, bảo mật](07-trien-khai.md)
 
-## Khởi tạo và chạy trên máy phát triển
+## Khởi chạy lần đầu bằng script (khuyến nghị)
+
+Sau khi cài các công cụ ở mục 0 và tạo database ở mục 2, toàn bộ phần còn lại là 3 lệnh, chạy ở thư mục gốc repo:
+
+```bash
+./scripts/construction/dev.sh setup
+```
+
+Lệnh `setup` kiểm tra phiên bản công cụ, tạo `apps/api/.env.local` với `SECRET_KEY` ngẫu nhiên (nếu chưa có), kiểm tra kết nối PostgreSQL/Redis, cài thư viện (`pnpm install`, `uv sync`) và tạo bảng (`migrate`). Chạy lại nhiều lần không sao.
+
+Chọn **một** trong hai cách nạp dữ liệu:
+
+```bash
+./scripts/construction/dev.sh demo
+```
+
+```bash
+./scripts/construction/dev.sh company --workspace cong-ty-abc --name "Công ty Xây dựng ABC" --admin-email giamdoc@congty.vn --admin-name "Nguyễn Văn A"
+```
+
+- `demo`: dữ liệu mẫu trong công ty `demo-xay-dung`, đăng nhập `giamdoc@demo.local` / `Demo@12345`.
+- `company`: công ty thật, không có dữ liệu giả; lệnh hỏi mật khẩu quản trị khi chạy.
+
+Chạy hệ thống (Ctrl+C để dừng cả hai máy chủ):
+
+```bash
+./scripts/construction/dev.sh start
+```
+
+Mở **http://localhost:3010/erp/**. Kiểm tra toàn bộ (lint, kiểu dữ liệu, kiểm thử backend và giao diện, build): `./scripts/construction/dev.sh check`.
+
+Muốn dùng database khác mặc định, đặt biến trước lần `setup` đầu tiên, ví dụ `DATABASE_URL=postgresql://user:pass@host:5432/ten_db ./scripts/construction/dev.sh setup`. Sau đó sửa trực tiếp `apps/api/.env.local`.
+
+## Khởi tạo và chạy thủ công từng bước
 
 ### 0. Yêu cầu
 

@@ -145,3 +145,46 @@ class TestAccessControl:
             company.url("employees/"), {"code": "NV-X", "full_name": "A", "department": str(foreign.id)}, format="json"
         )
         assert res.status_code == 400
+
+
+@pytest.mark.contract
+class TestProjectMembers:
+    def test_add_and_remove_members_with_string_ids(self, company):
+        data = company.create_project("DA-600", members=("civil_engineer",))
+        pm = company.client("project_manager")
+        qs_id = str(company.users["qs"].id)
+        res = pm.post(company.url(f"projects/{data['id']}/members/add/"), {"user_ids": [qs_id]}, format="json")
+        assert res.status_code == 200, res.data
+        assert qs_id in {m["id"] for m in res.data}
+        assert company.client("qs").get(company.url(f"projects/{data['id']}/")).status_code == 200
+        # unknown and malformed ids are refused
+        assert (
+            pm.post(
+                company.url(f"projects/{data['id']}/members/add/"),
+                {"user_ids": ["00000000-0000-0000-0000-000000000000"]},
+                format="json",
+            ).status_code
+            == 400
+        )
+        assert (
+            pm.post(
+                company.url(f"projects/{data['id']}/members/add/"), {"user_ids": ["not-a-uuid"]}, format="json"
+            ).status_code
+            == 400
+        )
+        # engineers cannot change membership
+        assert (
+            company.client("civil_engineer")
+            .post(company.url(f"projects/{data['id']}/members/add/"), {"user_ids": [qs_id]}, format="json")
+            .status_code
+            == 403
+        )
+        res = pm.post(company.url(f"projects/{data['id']}/members/remove/"), {"user_id": qs_id}, format="json")
+        assert res.status_code == 204
+        assert company.client("qs").get(company.url(f"projects/{data['id']}/")).status_code == 404
+        # the manager cannot be removed
+        mgr = str(company.users["project_manager"].id)
+        assert (
+            pm.post(company.url(f"projects/{data['id']}/members/remove/"), {"user_id": mgr}, format="json").status_code
+            == 400
+        )
