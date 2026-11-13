@@ -89,6 +89,21 @@ Kiểm tra khôi phục thử mỗi quý trên máy khác.
 2. `git pull` (hoặc hợp nhất bản Plane mới: các điểm nối của phân hệ xây dựng chỉ gồm `settings/common.py` - `INSTALLED_APPS` và `CELERY_IMPORTS`, `urls.py`, `celery.py`, `docker-compose.yml`, `apps/proxy/Caddyfile.ce`).
 3. `docker compose up -d --build` - migration chạy tự động bởi dịch vụ `migrator`.
 
-## 7.7 Giấy phép
+## 7.7 Triển khai giao diện ERP lên Vercel
+
+Vercel chỉ chạy được phần giao diện tĩnh `apps/erp`; API Django (`apps/api`), PostgreSQL, Redis, worker vẫn phải chạy trên máy chủ riêng (mục 7.1-7.3).
+
+1. Vercel → **Add New Project** → chọn repo này → **Root Directory**: `apps/erp` (giữ bật "Include files outside the root directory"). Các lệnh cài đặt/build đã khai báo trong `apps/erp/vercel.json` (pnpm 11, `--frozen-lockfile`).
+2. Deploy. Truy cập `https://<ten-du-an>.vercel.app/` sẽ tự chuyển tới `/erp/`.
+3. Nối API: để cookie phiên dùng chung nguồn gốc, thêm vào đầu mảng `rewrites` của `apps/erp/vercel.json` (thay `api.congty.vn` bằng tên miền máy chủ API thật):
+
+```json
+{ "source": "/api/:path*", "destination": "https://api.congty.vn/api/:path*" },
+{ "source": "/auth/:path*", "destination": "https://api.congty.vn/auth/:path*" }
+```
+
+và trên máy chủ API thêm tên miền Vercel vào `CORS_ALLOWED_ORIGINS` của `apps/api/.env`.
+
+## 7.8 Giấy phép
 
 Plane phát hành theo AGPL-3.0; bản phái sinh này giữ nguyên giấy phép. Nếu cho người ngoài công ty truy cập qua mạng, phải cung cấp mã nguồn (kể cả phần sửa đổi) cho họ khi được yêu cầu. Không dùng tên / logo "Plane" để quảng bá sản phẩm riêng.
