@@ -18,8 +18,11 @@
 5. [Phân quyền người dùng](05-phan-quyen.md)
 6. [Hướng dẫn sử dụng](06-huong-dan-su-dung.md)
 7. [Triển khai, sao lưu, bảo mật](07-trien-khai.md)
+8. [Cài đặt chạy thử trên Windows](08-cai-dat-windows.md)
 
 ## Khởi chạy lần đầu bằng script (khuyến nghị)
+
+> Máy Windows: làm theo [08-cai-dat-windows.md](08-cai-dat-windows.md) - một lệnh `./scripts/construction/wsl.sh install` cài mọi thứ.
 
 Sau khi cài các công cụ ở mục 0 và tạo database ở mục 2, toàn bộ phần còn lại là 3 lệnh, chạy ở thư mục gốc repo:
 
